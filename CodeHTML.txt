@@ -1,0 +1,432 @@
+<div class="header">
+    <h1>Portal RR.HH Empleados</h1>
+    <p>Tu centro de gestión de solicitudes y documentos</p>
+    <button id="open-form-btn">Crear Solicitud de Soporte</button>
+</div>
+
+<div class="container">
+    <div class="search-section">
+        <h2>¿En qué te podemos ayudar hoy?</h2>
+        <div class="search-box">
+            <input type="text" id="search-input" placeholder="Busca permisos, nómina, documentos, etc.">
+            <i class="fas fa-search search-icon"></i>
+        </div>
+    </div>
+
+    <h2>Temas más consultados</h2>
+    <div class="topics-grid">
+        
+        <div class="topic-card" id="permisos-card" data-search-content="Permisos Ausencias Licencias Vacaciones">
+            <div class="icon"><i class="fas fa-calendar-alt"></i></div>
+            <p>Permisos y Licencias</p>
+        </div>
+        
+        <div class="topic-card" id="nomina-card" data-search-content="Nómina Salario Comprobante Pago">
+            <div class="icon"><i class="fas fa-money-check-alt"></i></div>
+            <p>Nómina y Pago</p>
+        </div>
+        <div class="topic-card" id="documentos-card" data-search-content="Certificados Constancias Laboral">
+            <div class="icon"><i class="fas fa-file-contract"></i></div>
+            <p>Documentos y Certificados</p>
+        </div>
+        <div class="topic-card" id="empleado-card" data-search-content="Mis Solicitudes Seguimiento Estado Tareas">
+            <div class="icon"><i class="fas fa-tasks"></i></div>
+            <p>Mis Solicitudes (Seguimiento)</p>
+        </div>
+        <div class="topic-card" data-search-content="Beneficios Salud Bienestar">
+            <div class="icon"><i class="fas fa-heartbeat"></i></div>
+            <p>Beneficios P&C</p>
+        </div>
+        <div class="topic-card" data-search-content="Políticas Globales Empresa">
+            <div class="icon"><i class="fas fa-globe"></i></div>
+            <p>Políticas Globales</p>
+        </div>
+    </div>
+
+    <h2>Enlaces rápidos</h2>
+    <div class="links-section">
+        <div class="link-card" id="enlace-herramientas">
+            <p>Herramientas y Apps</p>
+        </div>
+        <div class="link-card" id="enlace-contactos">
+            <p>Contactos RRHH</p>
+        </div>
+    </div>
+</div>
+
+
+<div id="support-modal-container" class="modal-container modal-hidden">
+    <div class="modal-content">
+        <span class="close-btn">&times;</span>
+        <h2>Solicitud de Soporte General</h2>
+        <form>
+            <div class="form-group">
+                <label for="nombre-solicitante">Nombre Completo</label>
+                <input type="text" id="nombre-solicitante" name="nombre-solicitante" value="[Nombre del Empleado]" disabled>
+            </div>
+            <div class="form-group">
+                <label for="tema-soporte">Tema de la Solicitud</label>
+                <select id="tema-soporte" name="tema-soporte" required>
+                    <option value="">Seleccione un tema</option>
+                    <option value="Problema Técnico">Problema Técnico</option>
+                    <option value="Consulta RRHH">Consulta General RRHH</option>
+                    <option value="Otro">Otro (Especifique)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="descripcion-soporte">Descripción detallada</label>
+                <textarea id="descripcion-soporte" name="descripcion" rows="4" required></textarea>
+            </div>
+            <button type="submit" class="submit-btn">Enviar Solicitud</button>
+        </form>
+    </div>
+</div>
+
+<div id="empleado-modal-container" class="modal-container modal-hidden">
+    <div class="modal-content">
+        <span class="close-btn">&times;</span>
+        <h2>Panel de Seguimiento de Solicitudes</h2>
+
+        <div class="controls-container">
+            <label for="filter-type">Filtrar por Tipo:</label>
+            <select id="filter-type">
+                <option value="all">Todos los Tipos</option> 
+            </select>
+        </div>
+
+        <div class="task-table-container">
+            <table id="task-list-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Tipo de Solicitud</th>
+                        <th>Fecha de Envío</th>
+                        <th>Estado</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="task-list-details">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="detalle-formulario-modal" class="modal-container modal-hidden">
+    <div class="modal-content task-detail-body">
+        <span class="close-btn" id="close-detail-btn">&times;</span>
+        <h2 id="detalle-titulo">Detalle de Solicitud</h2>
+        <p id="detalle-fecha"></p>
+        <div id="detalle-contenido">
+            </div>
+    </div>
+</div>
+
+<div id="security-key-modal" class="modal-container modal-hidden">
+    <div class="modal-content security-modal-content">
+        <span class="close-btn security-close-btn">&times;</span>
+        <h2>Confirmar Borrado de Solicitud</h2>
+        <p>Estás a punto de eliminar la Solicitud <span id="security-key-id-placeholder" style="color: #e74c3c; font-weight: bold;">#XXX</span>.</p>
+        <p>Introduce la **Clave de Seguridad** para confirmar la acción.</p>
+        <form id="security-key-form">
+            <div class="form-group">
+                <input type="password" id="delete-key-input" placeholder="Clave de Seguridad (1234)" required>
+            </div>
+            <button type="submit" class="submit-btn danger-btn-submit">Confirmar Borrado</button>
+            <button type="button" id="cancel-delete-btn" class="submit-btn secondary-btn-cancel">Cancelar</button>
+        </form>
+    </div>
+</div>
+
+<div id="permisos-modal-container" class="modal-container modal-hidden">
+    <div class="modal-content">
+        <span class="close-btn">&times;</span>
+        <h2>Consultas Relacionadas con Permisos/Ausencias</h2>
+        <p>Selecciona el tipo de permiso o solicitud que necesitas.</p>
+        
+        <div class="links-container">
+            <div class="link-card" data-modal-target="solicitudes-permisos-modal">
+                <p>Solicitudes de Permisos</p>
+                <small>Consultas relacionadas con ausencias o permisos.</small>
+            </div>
+            <div class="link-card" data-modal-target="licencia-enfermedad-modal">
+                <p>Licencia por Enfermedad - Colombia</p>
+                <small>Envía tu Licencia Médica / Incapacidad.</small>
+            </div>
+            <div class="link-card" data-modal-target="aniversario-modal">
+                <p>Día de Aniversario - Colombia</p>
+                <small>Solicita tu permiso por Aniversario desde aquí.</small>
+            </div>
+            <div class="link-card" data-modal-target="dias-flotantes-modal">
+                <p>Días Flotantes/Libres - Colombia</p>
+                <small>Puedes solicitar diferentes tipos de permisos desde aquí.</small>
+            </div>
+            <div class="link-card" data-modal-target="licencia-maternidad-modal">
+                <p>Licencia de Maternidad - Colombia</p>
+                <small>¡Felicidades! Puedes informarnos aquí. (Certificado de Nacimiento)</small>
+            </div>
+            <div class="link-card" data-modal-target="licencia-aborto-modal">
+                <p>Licencia por Aborto Espontáneo - Colombia</p>
+                <small>Solo aplica en caso de aborto espontáneo o interrupción médica. (Certificado Médico)</small>
+            </div>
+            <div class="link-card" data-modal-target="licencia-paternidad-modal">
+                <p>Licencia de Paternidad - Colombia</p>
+                <small>Solicita tu licencia por nacimiento o adopción. (Registro Civil)</small>
+            </div>
+            <div class="link-card" data-modal-target="accidentes-laborales-modal">
+                <p>Reporte de Accidentes Laborales</p>
+                <small>Notifica de inmediato cualquier suceso ocurrido en tu horario laboral.</small>
+            </div>
+            
+            <div class="link-card" data-modal-target="licencia-mudanza-modal">
+                <p>Licencia Mudanza</p>
+                <small>Día libre por cambio de residencia.</small>
+            </div>
+            <div class="link-card" data-modal-target="otras-licencias-modal">
+                <p>Otras Licencias</p>
+                <small>Para casos especiales no cubiertos.</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div id="solicitudes-permisos-modal" class="modal-container modal-hidden">
+    <div class="modal-content">
+        <span class="close-btn" data-close-target="permisos-modal-container">&times;</span>
+        <h2>Formulario de Permiso General</h2>
+        <form>
+            <div class="form-group">
+                <label for="pg-tipo-permiso">Tipo de Permiso</label>
+                <select id="pg-tipo-permiso" name="tipo-permiso" required>
+                    <option value="">Seleccione...</option>
+                    <option value="Asunto Personal">Asunto Personal</option>
+                    <option value="Citas Médicas">Citas Médicas</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="pg-fecha-inicio">Fecha de Inicio</label>
+                <input type="date" id="pg-fecha-inicio" name="fecha-inicio" required>
+            </div>
+            <div class="form-group">
+                <label for="pg-motivo">Motivo</label>
+                <textarea id="pg-motivo" name="motivo" rows="3" required></textarea>
+            </div>
+            <button type="submit" class="submit-btn">Enviar Solicitud de Permiso</button>
+        </form>
+    </div>
+</div>
+
+<div id="licencia-enfermedad-modal" class="modal-container modal-hidden">
+    <div class="modal-content">
+        <span class="close-btn" data-close-target="permisos-modal-container">&times;</span>
+        <h2>Solicitud de Licencia por Enfermedad</h2>
+        <form>
+            <div class="form-group">
+                <label for="le-fecha-inicio">Fecha de Inicio de Incapacidad</label>
+                <input type="date" id="le-fecha-inicio" name="fecha-inicio" required>
+            </div>
+            <div class="form-group">
+                <label for="le-dias">Número de Días</label>
+                <input type="number" id="le-dias" name="dias" min="1" required>
+            </div>
+            <div class="form-group">
+                <label for="le-adjunto">Adjuntar Certificado Médico (Max 5MB)</label>
+                <input type="file" id="le-adjunto" name="adjunto" accept=".pdf,.jpg,.png" required>
+            </div>
+            <button type="submit" class="submit-btn">Enviar Licencia</button>
+        </form>
+    </div>
+</div>
+
+<div id="aniversario-modal" class="modal-container modal-hidden">
+    <div class="modal-content">
+        <span class="close-btn" data-close-target="permisos-modal-container">&times;</span>
+        <h2>Solicitud de Día de Aniversario</h2>
+        <form>
+            <p>¡Felicidades por tu aniversario con la empresa! Tienes derecho a un día libre.</p>
+            <div class="form-group">
+                <label for="aniv-fecha">Fecha Solicitada</label>
+                <input type="date" id="aniv-fecha" name="fecha" required>
+            </div>
+            <div class="form-group">
+                <label for="aniv-comentarios">Comentarios</label>
+                <textarea id="aniv-comentarios" name="comentarios" rows="2"></textarea>
+            </div>
+            <button type="submit" class="submit-btn">Solicitar Día Aniversario</button>
+        </form>
+    </div>
+</div>
+
+<div id="dias-flotantes-modal" class="modal-container modal-hidden">
+    <div class="modal-content">
+        <span class="close-btn" data-close-target="permisos-modal-container">&times;</span>
+        <h2>Solicitud de Días Flotantes/Libres</h2>
+        <form>
+            <div class="form-group">
+                <label for="df-tipo">Tipo de Día Solicitado</label>
+                <select id="df-tipo" name="tipo" required>
+                    <option value="">Seleccione...</option>
+                    <option value="Día Flotante (Personal)">Día Flotante (Personal)</option>
+                    <option value="Compensación">Día de Compensación</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="df-fecha">Fecha del Día Libre</label>
+                <input type="date" id="df-fecha" name="fecha" required>
+            </div>
+            <div class="form-group">
+                <label for="df-justificacion">Justificación</label>
+                <textarea id="df-justificacion" name="justificacion" rows="3" required></textarea>
+            </div>
+            <button type="submit" class="submit-btn">Enviar Solicitud</button>
+        </form>
+    </div>
+</div>
+
+<div id="licencia-maternidad-modal" class="modal-container modal-hidden">
+    <div class="modal-content">
+        <span class="close-btn" data-close-target="permisos-modal-container">&times;</span>
+        <h2>Notificación de Licencia de Maternidad</h2>
+        <form>
+            <p>Adjunta el certificado de nacimiento o el certificado médico que indica la fecha probable del parto.</p>
+            <div class="form-group">
+                <label for="lm-fecha-prevista">Fecha Prevista de Inicio de Licencia</label>
+                <input type="date" id="lm-fecha-prevista" name="fecha-prevista" required>
+            </div>
+            <div class="form-group">
+                <label for="lm-adjunto">Adjuntar Documento Requerido (Certificado/Registro)</label>
+                <input type="file" id="lm-adjunto" name="adjunto" accept=".pdf,.jpg,.png" required>
+            </div>
+            <button type="submit" class="submit-btn">Notificar Maternidad</button>
+        </form>
+    </div>
+</div>
+
+<div id="licencia-aborto-modal" class="modal-container modal-hidden">
+    <div class="modal-content">
+        <span class="close-btn" data-close-target="permisos-modal-container">&times;</span>
+        <h2>Solicitud de Licencia por Aborto Espontáneo/Interrupción</h2>
+        <form>
+            <div class="form-group">
+                <label for="la-fecha">Fecha del Suceso</label>
+                <input type="date" id="la-fecha" name="fecha-suceso" required>
+            </div>
+            <div class="form-group">
+                <label for="la-adjunto">Adjuntar Certificado Médico de la Clínica</label>
+                <input type="file" id="la-adjunto" name="adjunto" accept=".pdf" required>
+            </div>
+            <button type="submit" class="submit-btn">Enviar Solicitud de Licencia</button>
+        </form>
+    </div>
+</div>
+
+<div id="licencia-paternidad-modal" class="modal-container modal-hidden">
+    <div class="modal-content">
+        <span class="close-btn" data-close-target="permisos-modal-container">&times;</span>
+        <h2>Solicitud de Licencia de Paternidad</h2>
+        <form>
+            <p>Adjunta el Registro Civil de Nacimiento (dentro de los 30 días siguientes al nacimiento).</p>
+            <div class="form-group">
+                <label for="lp-fecha-nacimiento">Fecha de Nacimiento/Adopción</label>
+                <input type="date" id="lp-fecha-nacimiento" name="fecha-nacimiento" required>
+            </div>
+            <div class="form-group">
+                <label for="lp-adjunto">Adjuntar Registro Civil</label>
+                <input type="file" id="lp-adjunto" name="adjunto" accept=".pdf,.jpg,.png" required>
+            </div>
+            <button type="submit" class="submit-btn">Solicitar Licencia</button>
+        </form>
+    </div>
+</div>
+
+<div id="accidentes-laborales-modal" class="modal-container modal-hidden">
+    <div class="modal-content">
+        <span class="close-btn" data-close-target="permisos-modal-container">&times;</span>
+        <h2>Reporte de Accidente Laboral</h2>
+        <form>
+            <div class="form-group">
+                <label for="al-fecha-incidente">Fecha del Incidente</label>
+                <input type="date" id="al-fecha-incidente" name="fecha-incidente" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="al-fecha-accidente">Fecha:</label>
+                <input type="date" id="al-fecha-accidente" name="fecha-accidente" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="al-lugar">Lugar:</label>
+                <input type="text" id="al-lugar" name="lugar" placeholder="Área, Sucursal o Dirección" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="al-hora">Hora:</label>
+                <input type="time" id="al-hora" name="hora" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="al-empleado">Empleado involucrado:</label>
+                <input type="text" id="al-empleado" name="empleado-involucrado" value=>
+            
+            <div class="form-group">
+                <label for="al-codigo">Código de accidente:</label>
+                <input type="text" id="al-codigo" name="codigo-accidente" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="al-fecha-seguimiento">Fecha de seguimiento:</label>
+                <input type="date" id="al-fecha-seguimiento" name="fecha-seguimiento">
+            </div>
+            
+            <div class="form-group">
+                <label for="al-tipo">Tipo de accidente:</label>
+                <select id="al-tipo" name="tipo-accidente" required>
+                    <option value="">Seleccione el tipo</option>
+                    <option value="Leve">Leve (Requiere Primeros Auxilios)</option>
+                    <option value="Grave">Grave (Requiere Atención Médica)</option>
+                    <option value="Mortal">Mortal</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="al-descripcion">Descripción:</label>
+                <textarea id="al-descripcion" name="descripcion" rows="4" required placeholder="Describa brevemente lo ocurrido, las causas y las lesiones."></textarea>
+            </div>
+            
+            <button type="submit" class="submit-btn danger-btn-submit">Reportar Accidente</button>
+        </form>
+    </div>
+</div>
+
+<div id="licencia-mudanza-modal" class="modal-container modal-hidden">
+    <div class="modal-content">
+        <span class="close-btn" data-close-target="permisos-modal-container">&times;</span>
+        <h2>Solicitud de Licencia por Mudanza</h2>
+        <form>
+            <div class="form-group">
+                <label for="lmud-fecha">Fecha de Mudanza Solicitada</label>
+                <input type="date" id="lmud-fecha" name="fecha-mudanza" required>
+            </div>
+             <button type="submit" class="submit-btn">Solicitar Licencia</button>
+        </form>
+    </div>
+</div>
+
+<div id="otras-licencias-modal" class="modal-container modal-hidden">
+    <div class="modal-content">
+        <span class="close-btn" data-close-target="permisos-modal-container">&times;</span>
+        <h2>Otras Licencias/Consultas</h2>
+        <form>
+            <div class="form-group">
+                <label for="otras-motivo">Especifique el motivo de la licencia/consulta</label>
+                <input type="text" id="otras-motivo" name="motivo-licencia" required>
+            </div>
+            <div class="form-group">
+                <label for="otras-detalle">Detalles Adicionales</label>
+                <textarea id="otras-detalle" name="detalles" rows="4" required></textarea>
+            </div>
+            <button type="submit" class="submit-btn">Enviar Consulta</button>
+        </form>
+    </div>
+</div>

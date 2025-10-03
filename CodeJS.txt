@@ -1,0 +1,509 @@
+document.addEventListener('DOMContentLoaded', () => {
+
+    // ------------------------------------------------------------------
+    // --- CONSTANTES GLOBALES (MEJOR PRÁCTICA) ---
+    // ------------------------------------------------------------------
+    const trackingTargetId = 'empleado-modal-container';
+    const STORAGE_KEY = 'submittedForms';
+
+    // Clave de seguridad para el borrado (PUEDES CAMBIAR ESTO)
+    const DELETE_KEY = '1234'; 
+    
+    // Almacena temporalmente el ID del formulario que se intenta borrar
+    let formIdToDelete = null;
+
+    // Referencias a elementos del DOM (Obtenerlas una vez al inicio)
+    const filterSelect = document.getElementById('filter-type');
+    const tbody = document.getElementById('task-list-details');
+    const empleadoModalContainer = document.getElementById(trackingTargetId);
+    const securityModal = document.getElementById('security-key-modal');
+    const securityForm = document.getElementById('security-key-form');
+    const securityKeyInput = document.getElementById('delete-key-input');
+    const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+    const searchInput = document.getElementById('search-input');
+    const topicCards = document.querySelectorAll('.topic-card');
+    const linkCardsMain = document.querySelectorAll('.links-section .link-card');
+    const detailModal = document.getElementById('detalle-formulario-modal');
+
+
+    // ------------------------------------------------------------------
+    // --- LÓGICA DE ALMACENAMIENTO (Simulación de Base de Datos) ---
+    // ------------------------------------------------------------------
+
+    const saveFormData = (type, data) => {
+        const forms = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        
+        // Asignar un ID único simple para el prototipo
+        const newId = forms.length ? forms[forms.length - 1].id + 1 : 1001; 
+        
+        const newForm = {
+            id: newId,
+            type: type,
+            timestamp: new Date().toLocaleString(),
+            status: 'Pendiente de Revisión', // Estado simulado
+            data: data
+        };
+        
+        forms.push(newForm);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(forms));
+        return newForm;
+    };
+    
+    // ------------------------------------------------------------------
+    // --- MANEJO DE BORRADO SEGURO ---
+    // ------------------------------------------------------------------
+
+    /**
+     * Muestra el modal de seguridad antes de borrar, almacenando el ID.
+     */
+    const promptForDeleteKey = (formId) => {
+        formIdToDelete = formId; // Guarda el ID para usarlo en el submit del modal
+        
+        const idPlaceholder = document.getElementById('security-key-id-placeholder');
+        
+        idPlaceholder.textContent = `#${formId}`;
+        securityKeyInput.value = ''; // Limpia el campo de contraseña
+        securityModal.classList.remove('modal-hidden');
+        securityKeyInput.focus(); // Enfoca el campo de contraseña para accesibilidad
+    };
+    
+    /**
+     * Borra un formulario REALMENTE, después de verificar la clave.
+     */
+    const performDeletion = (keyAttempt) => {
+        if (!formIdToDelete) return;
+
+        // 1. Verificar la clave
+        if (keyAttempt !== DELETE_KEY) {
+            alert("❌ Borrado cancelado. Clave incorrecta.");
+            formIdToDelete = null; 
+            return;
+        }
+
+        // 2. Si la clave es correcta, proceder al borrado
+        let forms = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        const initialLength = forms.length;
+        
+        // Filtrar para eliminar el formulario con el ID coincidente
+        forms = forms.filter(form => form.id !== parseInt(formIdToDelete));
+        
+        if (forms.length < initialLength) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(forms));
+            alert(`✅ Solicitud #${formIdToDelete} eliminada exitosamente.`);
+            
+            // 3. Recargar la tabla para mostrar los cambios
+            loadFormData(filterSelect ? filterSelect.value : 'all'); 
+        } else {
+            alert("❌ Error: No se encontró la solicitud para eliminar.");
+        }
+        
+        // Limpiar el ID temporal
+        formIdToDelete = null; 
+    };
+
+    // ------------------------------------------------------------------
+    // --- RENDERIZADO DE LA TABLA Y FILTROS ---
+    // ------------------------------------------------------------------
+
+    // Función central para cargar los datos en la tabla y los filtros
+    const loadFormData = (filter = 'all') => {
+        if (!tbody || !filterSelect) return;
+
+        const forms = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        const uniqueTypes = [...new Set(forms.map(f => f.type))];
+        
+        // 1. Cargar opciones de filtro (solo si cambian)
+        const currentOptions = Array.from(filterSelect.options).map(opt => opt.value);
+        const shouldUpdateOptions = !uniqueTypes.every(type => currentOptions.includes(type)) || currentOptions.length !== uniqueTypes.length + 1;
+
+        if (shouldUpdateOptions) {
+            filterSelect.innerHTML = '<option value="all">Todos los Tipos</option>';
+            uniqueTypes.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                filterSelect.appendChild(option);
+            });
+        }
+        // Asegura que el filtro seleccionado en la tabla coincida con el argumento
+        filterSelect.value = filter;
+        
+        // 2. Filtrar y ordenar los datos (más reciente primero)
+        const filteredForms = forms
+            .filter(form => filter === 'all' || form.type === filter)
+            .sort((a, b) => b.id - a.id); 
+        
+        // 3. Renderizar la tabla
+        tbody.innerHTML = ''; 
+        
+        if (filteredForms.length === 0) {
+              const row = tbody.insertRow();
+              const cell = row.insertCell();
+              cell.colSpan = 5;
+              cell.textContent = 'No hay solicitudes para mostrar con el filtro actual.';
+              return;
+        }
+
+        filteredForms.forEach(form => {
+            const row = tbody.insertRow();
+            row.setAttribute('data-form-id', form.id);
+            
+            // Columna 1: ID
+            row.insertCell().textContent = form.id;
+            
+            // Columna 2: Tipo de Solicitud
+            row.insertCell().textContent = form.type;
+
+            // Columna 3: Fecha de Envío (Formateado)
+            const dateOnly = form.timestamp.split(',')[0];
+            row.insertCell().textContent = dateOnly; 
+
+            // Columna 4: Estado
+            row.insertCell().textContent = form.status;
+
+            // Columna 5: Acción (Botones de Detalle y Borrado)
+            const actionCell = row.insertCell();
+            
+            // Botón de Detalle
+            const detailBtn = document.createElement('button');
+            detailBtn.textContent = 'Ver Detalle';
+            detailBtn.classList.add('detail-btn', 'secondary-btn'); 
+            detailBtn.setAttribute('data-form-id', form.id);
+            detailBtn.setAttribute('title', `Ver detalle de la solicitud ${form.id}`); // Mejora de accesibilidad
+            actionCell.appendChild(detailBtn);
+            
+            // Botón de Borrar
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Borrar';
+            deleteBtn.classList.add('delete-btn', 'danger-btn'); 
+            deleteBtn.setAttribute('data-form-id', form.id);
+            deleteBtn.setAttribute('title', `Borrar la solicitud ${form.id}`); // Mejora de accesibilidad
+            actionCell.appendChild(deleteBtn);
+        });
+    };
+    
+    // Función para mostrar el detalle del formulario
+    const showFormDetail = (formId) => {
+        if (!detailModal) return;
+
+        const forms = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        const form = forms.find(f => f.id === parseInt(formId));
+        
+        if (!form) return;
+
+        const detailTitle = document.getElementById('detalle-titulo');
+        const detailContent = document.getElementById('detalle-contenido');
+        
+        detailTitle.textContent = `Detalle de ${form.type} (ID: ${form.id})`;
+        document.getElementById('detalle-fecha').textContent = `Fecha de Envío: ${form.timestamp}`;
+        detailContent.innerHTML = '';
+
+        // Crear tabla de detalles
+        const table = document.createElement('table');
+        table.innerHTML = `
+            <tr><th>Campo</th><th>Valor</th></tr>
+            <tr><td>ID de Solicitud</td><td>${form.id}</td></tr>
+            <tr><td>Tipo de Solicitud</td><td>${form.type}</td></tr>
+            <tr><td>Estado Actual</td><td>${form.status}</td></tr>
+        `;
+        
+        // Añadir el contenido del formulario
+        for (const [key, value] of Object.entries(form.data)) {
+            // Ignorar campos de tipo 'file' y campos vacíos
+            if (value === "" || (typeof value === 'string' && value.includes('C:\\fakepath\\'))) continue;
+
+            // Formatear el nombre del campo (ej. "fecha-inicio" -> "Fecha Inicio")
+            let displayName = key.replace(/-/g, ' ').replace(/(?:^|\s)\S/g, function(a) { return a.toUpperCase(); });
+            
+            table.innerHTML += `
+                <tr>
+                    <td style="font-weight: bold;">${displayName}</td>
+                    <td>${value || 'N/A'}</td>
+                </tr>
+            `;
+        }
+        
+        detailContent.appendChild(table);
+        detailModal.classList.remove('modal-hidden');
+    };
+
+    // ------------------------------------------------------------------
+    // --- MANEJO DE EVENTOS ---
+    // ------------------------------------------------------------------
+    
+    // 1. Delegación de eventos para la tabla de tareas (clic en la fila, botón detalle o botón borrar)
+    if (empleadoModalContainer) {
+        empleadoModalContainer.addEventListener('click', (e) => {
+            let target = e.target;
+            let formId = null;
+            
+            // *** LÓGICA DE BORRADO: Si se hace clic en el botón 'Borrar' ***
+            if (target.classList.contains('delete-btn')) {
+                formId = target.getAttribute('data-form-id');
+                e.preventDefault();
+                promptForDeleteKey(formId); // Llama al modal de seguridad
+                return; 
+            }
+            
+            // 2. Determinar el ID para "Ver Detalle" (botón o fila)
+            if (target.classList.contains('detail-btn')) {
+                formId = target.getAttribute('data-form-id');
+            } 
+            else {
+                const row = target.closest('tr[data-form-id]');
+                // Asegura que no es la cabecera (th) o una celda de acción
+                if (row && !target.closest('#task-list-details td:last-child')) { 
+                    formId = row.getAttribute('data-form-id');
+                }
+            }
+            
+            if (formId) {
+                e.preventDefault();
+                // Cierra el modal de Vista Empleado y abre el modal de Detalle
+                empleadoModalContainer.classList.add('modal-hidden');
+                showFormDetail(formId);
+            }
+        });
+    }
+    
+    // 2. Evento de cambio para el filtro
+    if (filterSelect) {
+        filterSelect.addEventListener('change', (e) => {
+            loadFormData(e.target.value);
+        });
+    }
+
+    /**
+     * Maneja el evento de submit de un formulario específico.
+     */
+    const handleFormSubmission = (modalId, typeName) => {
+        const form = document.querySelector(`#${modalId} form`);
+        const modalToClose = document.getElementById(modalId);
+        
+        if (form && modalToClose) {
+            form.addEventListener('submit', (event) => {
+                event.preventDefault(); 
+                
+                let formData = {};
+                
+                // Captura todos los campos del formulario
+                new FormData(form).forEach((value, key) => {
+                    formData[key] = value;
+                });
+                
+                // Guardar los datos en localStorage
+                saveFormData(typeName, formData);
+
+                // Cierre y notificación
+                modalToClose.classList.add('modal-hidden');
+                alert(`✅ Solicitud de ${typeName} enviada con éxito. Abriendo el Panel de Solicitudes para seguimiento.`);
+                
+                // 4. Actualiza la lista de tareas y abre el modal de seguimiento
+                loadFormData('all'); // Recarga todos los datos
+                
+                if (empleadoModalContainer) {
+                    empleadoModalContainer.classList.remove('modal-hidden');
+                }
+                
+                // Limpia el formulario
+                form.reset();
+            });
+        }
+    }
+    
+    /**
+     * FUNCIÓN CENTRAL PARA ABRIR/CERRAR MODALES SIMPLES (Refactorizada)
+     */
+    const setupModal = (openBtnId, modalId) => {
+        const openBtn = document.getElementById(openBtnId);
+        const modal = document.getElementById(modalId);
+        // Usamos un selector más específico para evitar tomar botones de cierre anidados por error
+        const closeBtn = modal ? modal.querySelector('.close-btn:not([data-close-target])') : null; 
+
+        if (openBtn && modal) {
+            openBtn.addEventListener('click', () => {
+                if (modalId === trackingTargetId) {
+                    loadFormData('all'); // Siempre carga todos los datos al abrir el panel
+                }
+                modal.classList.remove('modal-hidden');
+            });
+        }
+        
+        if (closeBtn) {
+              closeBtn.addEventListener('click', () => {
+                modal.classList.add('modal-hidden');
+            });
+        }
+        
+        // Manejador de cierre para clic en el fondo del modal (Overlay)
+        if (modal) {
+            modal.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    modal.classList.add('modal-hidden');
+                }
+            });
+        }
+        return modal;
+    };
+
+
+    // 3. Funcionalidad de búsqueda 
+    if (searchInput) {
+        searchInput.addEventListener('input', (event) => {
+            const searchTerm = event.target.value.toLowerCase();
+            
+            topicCards.forEach(card => {
+                const content = card.dataset.searchContent ? card.dataset.searchContent.toLowerCase() : '';
+                // Usamos 'flex' para las tarjetas en la grid para mejor control
+                card.style.display = content.includes(searchTerm) ? 'flex' : 'none'; 
+            });
+            
+            linkCardsMain.forEach(card => {
+                const cardText = card.textContent ? card.textContent.toLowerCase() : '';
+                card.style.display = cardText.includes(searchTerm) ? 'flex' : 'none';
+            });
+            
+            // Si el campo de búsqueda está vacío, mostramos todo
+            if (searchTerm === '') {
+                topicCards.forEach(card => card.style.display = 'block'); // Vuelve al display original del CSS
+                linkCardsMain.forEach(card => card.style.display = 'flex');
+            }
+        });
+    }
+    
+    // 4. Configuración del Modal de Seguridad (Borrado con Clave) - Centralizado
+    if (securityModal && securityForm && cancelDeleteBtn) {
+        // Evento de submit (Confirmar Borrado)
+        securityForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const keyAttempt = securityKeyInput.value;
+            securityModal.classList.add('modal-hidden');
+            performDeletion(keyAttempt); // Ejecuta la función real de borrado
+        });
+        
+        // Evento de click en Cancelar
+        cancelDeleteBtn.addEventListener('click', () => {
+            securityModal.classList.add('modal-hidden');
+            alert("❌ Borrado cancelado por el usuario.");
+            formIdToDelete = null;
+        });
+
+        // Evento de click en el botón de cierre (X) y overlay
+        const securityCloseBtn = securityModal.querySelector('.close-btn');
+        const handleSecurityClose = () => {
+             securityModal.classList.add('modal-hidden');
+             formIdToDelete = null;
+        };
+
+        if (securityCloseBtn) {
+            securityCloseBtn.addEventListener('click', handleSecurityClose);
+        }
+        
+        securityModal.addEventListener('click', (event) => {
+             if (event.target === securityModal) {
+                 handleSecurityClose();
+             }
+        });
+    }
+
+    // ------------------------------------------------------------------
+    // --- INICIALIZACIÓN DE LA APLICACIÓN ---
+    // ------------------------------------------------------------------
+    
+    // 1. Configuración de TODOS los modales principales (Verificación de IDs)
+    setupModal('open-form-btn', 'support-modal-container');
+    setupModal('nomina-card', 'nomina-modal-container');
+    setupModal('documentos-card', 'documentos-modal-container');
+    setupModal('empleado-card', trackingTargetId); // Panel de Solicitudes
+    setupModal('detalle-formulario-modal', 'detalle-formulario-modal'); 
+
+    
+    // 2. Definición y Configuración de formularios anidados (Permisos)
+    const nestedForms = [
+        // >>> Formularios de la imagen <<<
+        { id: 'solicitudes-permisos-modal', name: 'Permiso General' }, 
+        { id: 'licencia-enfermedad-modal', name: 'Licencia Enfermedad' }, 
+        { id: 'aniversario-modal', name: 'Día Aniversario' }, 
+        { id: 'dias-flotantes-modal', name: 'Días Flotantes' }, 
+        { id: 'licencia-maternidad-modal', name: 'Licencia Maternidad' }, 
+        { id: 'licencia-aborto-modal', name: 'Licencia Aborto Espontáneo' }, 
+        { id: 'licencia-paternidad-modal', name: 'Licencia Paternidad' }, 
+        { id: 'accidentes-laborales-modal', name: 'Accidente Laboral' }, 
+        
+        // >>> Otros formularios existentes <<<
+        { id: 'licencia-mudanza-modal', name: 'Licencia Mudanza' },
+        { id: 'otras-licencias-modal', name: 'Otras Licencias' }
+    ];
+    
+    // Aplicar la lógica de envío a todos los formularios (incluyendo los anidados)
+    nestedForms.forEach(form => {
+        handleFormSubmission(form.id, form.name);
+    });
+
+    // 3. Modales de Permisos (ANIDACIÓN - Lógica de Apertura y Cierre)
+    const permisosModal = setupModal('permisos-card', 'permisos-modal-container');
+
+    if (permisosModal) {
+        
+        // Lógica de apertura/cierre de modales anidados
+        const linkCards = permisosModal.querySelectorAll('.link-card');
+        linkCards.forEach(card => {
+            card.addEventListener('click', () => {
+                const targetId = card.dataset.modalTarget;
+                const targetModal = document.getElementById(targetId);
+                
+                if (targetModal) {
+                    // Cierra el menú de selección y abre el formulario de destino
+                    permisosModal.classList.add('modal-hidden'); 
+                    targetModal.classList.remove('modal-hidden'); 
+                }
+            });
+        });
+
+        // ====================================================================
+        // >>> LÓGICA DE CIERRE ANIDADO CORREGIDA (SOLUCIÓN AL BUG) <<<
+        // ====================================================================
+        
+        // Selecciona todos los botones de cierre que están dentro de un formulario anidado
+        // y que tienen el data-close-target.
+        const allCloseFormBtns = document.querySelectorAll('.modal-container:not(#permisos-modal-container) .close-btn[data-close-target]');
+
+        allCloseFormBtns.forEach(closeBtn => {
+            // El ID del menú principal de permisos (el padre), que está en el data-close-target.
+            const parentMenuId = closeBtn.dataset.closeTarget; 
+            const parentMenu = document.getElementById(parentMenuId);
+
+            // El modal del formulario actual (el que debe cerrarse).
+            // CLAVE DE LA CORRECCIÓN: encuentra el modal más cercano al botón 'X'.
+            const formModalToClose = closeBtn.closest('.modal-container'); 
+
+            if (parentMenu && formModalToClose) {
+                
+                const handleNestedClose = (e) => {
+                    if (e) e.stopPropagation(); 
+                    
+                    // 1. Cierra el formulario anidado actual.
+                    formModalToClose.classList.add('modal-hidden');
+                    
+                    // 2. Vuelve a abrir el menú de selección de permisos (el padre).
+                    parentMenu.classList.remove('modal-hidden'); 
+                };
+
+                // Asigna el evento click al botón 'X'
+                closeBtn.addEventListener('click', handleNestedClose);
+                
+                // Cierre al hacer clic en el fondo del modal anidado
+                formModalToClose.addEventListener('click', (event) => {
+                    if (event.target === formModalToClose) {
+                        handleNestedClose();
+                    }
+                });
+            }
+        });
+        // ====================================================================
+        // >>> FIN LÓGICA DE CIERRE ANIDADO CORREGIDA <<<
+    }
+
+    // 5. Cargar los formularios al iniciar la página
+    loadFormData('all');
+});
